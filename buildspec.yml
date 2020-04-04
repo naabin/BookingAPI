@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo installing maven
+  build:
+    commands:
+      - echo building reservation system
+      - pwd
+      - cd reservation
+      - mvn install
+      - mvn package
+      - cd ..
+artifacts:
+  files:
+    - target/*.jar
+    - scripts/*.sh
+    - appspec.yml
+  discard-paths: yes
+ 
+cache:
+  paths:
+    - '/root/.m2/**/*'
+ 

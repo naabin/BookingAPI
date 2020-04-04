@@ -8,10 +8,8 @@ phases:
     commands:
       - echo building reservation system
       - pwd
-      - cd reservation
       - mvn install
       - mvn package
-      - cd ..
 artifacts:
   files:
     - target/*.jar

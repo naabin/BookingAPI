@@ -1,11 +1,14 @@
 package com.reservation.controllers;
 
+
 import java.io.IOException;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -44,6 +47,12 @@ public class ImageController {
 		return ResponseEntity.ok().body(updatedImage);
 	}
 	
+	@GetMapping
+	public ResponseEntity<Image> getImage(@RequestParam(name = "restaurantId", value = "restaurantId", required = true)Long restaurantId) throws ResourceNotFoundException{
+		Image image = this.imageService.getImageByRestaurantId(restaurantId).orElseThrow(() -> new ResourceNotFoundException("Resource could not be found"));
+		return ResponseEntity.ok().body(image);
+	}
+	
 	
 	@DeleteMapping("/{id}")
 	public ResponseEntity<?> deleteImage(
@@ -51,5 +60,22 @@ public class ImageController {
 			@RequestParam(name = "imageURL", required = true)String imageUrl){
 		this.imageService.deleteFileFromS3Bucket(imageUrl, id);
 		return ResponseEntity.ok().build();
+	}
+	
+	@PutMapping("/{imageId}")
+	public ResponseEntity<Image> updateImage(
+			@PathVariable("imageId") Long currentImageUrlId,
+			@RequestParam(name = "restaurantId", required = true) long restaurantId,
+			@RequestPart(value = "file") MultipartFile file,
+			@RequestParam(name = "currentImageUrl", required = true)String currentImageUrl
+			) throws IOException, ResourceNotFoundException{
+		Restaurant restaurant = this.restaurantService.findRestaurantById(restaurantId).orElseThrow(() -> new ResourceNotFoundException("Could not find the resources"));
+		Image image = this.imageService.changePicture(file, currentImageUrl, currentImageUrlId);
+		image.setRestaurant(restaurant);
+		restaurant.setImage(image);
+		this.restaurantService.updateRestaurant(restaurant);
+		Image updatedImage = this.imageService.update(image);
+		return ResponseEntity.ok().body(updatedImage);
+		
 	}
 }

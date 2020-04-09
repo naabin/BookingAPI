@@ -68,8 +68,8 @@ public class RestaurantServiceImpl implements RestaurantService {
 	@Override
 	public Page<Restaurant> getAllRestaurants(Integer pageNumber, Integer pageSize, String restaurantName) {
 		PageRequest pageRequest = PageRequest.of(pageNumber, pageSize);
-		if (restaurantName != null) {
-			return this.restaurantRepository.findAllByName(restaurantName, pageRequest);
+		if (restaurantName.length() > 1) {
+			return this.restaurantRepository.findByNameContaining(restaurantName, pageRequest);
 		} else {
 			Page<Restaurant> restuarant = this.restaurantRepository.findAll(pageRequest);
 			return restuarant;

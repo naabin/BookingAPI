@@ -121,4 +121,18 @@ public class ImageServiceImpl implements ImageService {
 		this.amazonS3.putObject(new PutObjectRequest(this.bucket, fileName, file).withCannedAcl(CannedAccessControlList.PublicRead));
 	}
 
+
+	@Override
+	@Async
+	public Image changePicture(MultipartFile file, String currentImageUrl, Long currentImageUrlId) throws IOException {
+		deleteFileFromS3Bucket(currentImageUrl, currentImageUrlId);
+		return uploadFileToS3Bucket(file);
+	}
+
+
+	@Override
+	public Optional<Image> getImageByRestaurantId(Long restaurantId) {
+		return this.imageRepository.findImageByrestaurantId(restaurantId);
+	}
+
 }

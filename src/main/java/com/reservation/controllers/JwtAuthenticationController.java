@@ -1,7 +1,6 @@
 package com.reservation.controllers;
 
 
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,11 +21,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.reservation.models.security.BookingUser;
-import com.reservation.models.security.JwtRequest;
-import com.reservation.models.security.JwtResponse;
+import com.reservation.models.security.User;
+import com.reservation.models.security.responseentity.JwtRequest;
+import com.reservation.models.security.responseentity.JwtResponse;
 import com.reservation.securityconfig.JwtTokenUtil;
-import com.reservation.services.BookingUserService;
+import com.reservation.services.UserService;
 
 @RestController
 @CrossOrigin(maxAge = 3600)
@@ -36,7 +36,7 @@ public class JwtAuthenticationController {
 
 	private final JwtTokenUtil jwtTokenUtil;
 
-	private final BookingUserService userService;
+	private final UserService userService;
 	
 
 	
@@ -44,7 +44,7 @@ public class JwtAuthenticationController {
 	public JwtAuthenticationController(
 			AuthenticationManager authenticationManager, 
 			JwtTokenUtil jwtTokenUtil,
-			BookingUserService userService) {
+			UserService userService) {
 		this.authenticationManager = authenticationManager;
 		this.jwtTokenUtil = jwtTokenUtil;
 		this.userService = userService;
@@ -57,29 +57,27 @@ public class JwtAuthenticationController {
 	public ResponseEntity<?> createAuthenticationToken(
 			@Valid @RequestBody JwtRequest authenticationRequest ) throws Exception{
 		
-		final BookingUser userDetails = this.userService.loadUserByEmail(authenticationRequest.getUsername());
+		final User userDetails = this.userService.loadUserByEmail(authenticationRequest.getUsername());
 		
 		if(userDetails == null) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid credential provided");
 		}
 		
-		authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
+		Authentication authentication = authenticate(authenticationRequest.getUsername(), authenticationRequest.getPassword());
 		
 		
 		
-		BookingUser username = this.userService.loadUserByEmail(authenticationRequest.getUsername());		
+		User username = this.userService.loadUserByEmail(authenticationRequest.getUsername());
 		
-		final String token = this.jwtTokenUtil.generateToken(userDetails);
+		final String token = this.jwtTokenUtil.generateToken(authentication);
 		
 		if(username.getRestaurant() != null) {
 			final Long restaurantId = username.getRestaurant().getId();
 			return ResponseEntity.ok().body(
 					new JwtResponse(token, 
 							username.getId(), 
-							username.getFirstName(), 
-							username.getLastName(), 
+							username.getName(),
 							username.getEmail(),
-							username.getUserRoles(),
 							restaurantId
 							));
 		}
@@ -87,15 +85,14 @@ public class JwtAuthenticationController {
 			return ResponseEntity.ok().body(
 					new JwtResponse(token, 
 							username.getId(), 
-							username.getFirstName(), 
-							username.getLastName(), 
-							username.getEmail(),
-							username.getUserRoles()
+							username.getName(),
+							username.getEmail()
 							));
 		}
 		
 
 	}
+	
 	
 	@PostMapping("/validtoken")
 	public ResponseEntity<?> checkTokenExpiry(HttpServletRequest request){
@@ -113,9 +110,11 @@ public class JwtAuthenticationController {
 	}
 	
 	
-	private void authenticate(String username, String password) throws Exception{
+	private Authentication authenticate(String username, String password) throws Exception{
 		try {
-			this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+			Authentication authentication = this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+			return authentication;
+			
 		} catch (DisabledException exception) {
 			throw new Exception("USER DISABLED", exception);
 		}

@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.reservation.exception.ResourceNotFoundException;
 import com.reservation.models.Restaurant;
-import com.reservation.models.security.BookingUser;
-import com.reservation.services.BookingUserService;
+import com.reservation.models.security.User;
+import com.reservation.services.UserService;
 import com.reservation.services.RestaurantService;
 
 import io.swagger.annotations.Api;
@@ -31,9 +31,9 @@ public class RestautantController {
 	
 	private final RestaurantService restaurantService;
 	
-	private final BookingUserService userService;
+	private final UserService userService;
 	
-	public RestautantController(RestaurantService restaurantService, BookingUserService userService) {
+	public RestautantController(RestaurantService restaurantService, UserService userService) {
 		this.restaurantService = restaurantService;
 		this.userService = userService;
 	}
@@ -71,7 +71,7 @@ public class RestautantController {
 	public ResponseEntity<Restaurant> createRestaurant(
 			@RequestBody Restaurant restaurant, 
 			@RequestParam(name = "userId", required = true)Long userId){
-		BookingUser user = this.userService.findUserById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+		User user = this.userService.findUserById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 			restaurant.setUser(user);
 			Restaurant createdRestaurant = this.restaurantService.createRestaurant(restaurant, restaurant.getOpeningHours());
 			return ResponseEntity.ok().body(createdRestaurant);

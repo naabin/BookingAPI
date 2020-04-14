@@ -15,7 +15,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
-import com.reservation.models.security.BookingUser;
+import com.reservation.models.security.User;
 
 import io.swagger.annotations.ApiModel;
 
@@ -54,14 +54,14 @@ public class Restaurant extends Auditable {
 	private List<OpeningHours> openingHours = new ArrayList<OpeningHours>();
 
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "restaurant")
-	private List<Reservation> bookings = new ArrayList<Reservation>();
+	private List<Reservation> bookings = new ArrayList<Reservation>();	
 
 	
-	@OneToOne
+	@OneToOne(cascade = CascadeType.ALL)
 	private Image image;
 
 	@OneToOne
-	private BookingUser user;
+	private User user;
 
 	public Long getId() {
 		return id;
@@ -135,11 +135,11 @@ public class Restaurant extends Auditable {
 		this.bookings = bookings;
 	}
 
-	public BookingUser getUser() {
+	public User getUser() {
 		return user;
 	}
 
-	public void setUser(BookingUser user) {
+	public void setUser(User user) {
 		this.user = user;
 	}
 

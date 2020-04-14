@@ -11,10 +11,10 @@ import org.springframework.stereotype.Service;
 
 import com.reservation.models.OpeningHours;
 import com.reservation.models.Restaurant;
-import com.reservation.models.security.BookingUser;
+import com.reservation.models.security.User;
 import com.reservation.repositories.OpeningHoursRepository;
 import com.reservation.repositories.RestaurantRepository;
-import com.reservation.services.BookingUserService;
+import com.reservation.services.UserService;
 import com.reservation.services.RestaurantService;
 
 @Service
@@ -22,10 +22,10 @@ public class RestaurantServiceImpl implements RestaurantService {
 
 	private final RestaurantRepository restaurantRepository;
 	private final OpeningHoursRepository openingHoursRepository;
-	private final BookingUserService userService;
+	private final UserService userService;
 
 	public RestaurantServiceImpl(RestaurantRepository restaurantRepository,
-			OpeningHoursRepository openingHoursRepository, BookingUserService userService) {
+			OpeningHoursRepository openingHoursRepository, UserService userService) {
 		this.restaurantRepository = restaurantRepository;
 		this.openingHoursRepository = openingHoursRepository;
 		this.userService = userService;
@@ -40,11 +40,11 @@ public class RestaurantServiceImpl implements RestaurantService {
 			this.openingHoursRepository.save(openingHour);
 		}
 		if (restaurant.getUser() != null) {
-			Optional<BookingUser> optionalUser = this.userService.findUserById(restaurant.getUser().getId());
+			Optional<User> optionalUser = this.userService.findUserById(restaurant.getUser().getId());
 			if (optionalUser.isPresent()) {
-				BookingUser bookingUser = optionalUser.get();
+				User bookingUser = optionalUser.get();
 				bookingUser.setRestaurant(restaurant);
-				this.userService.updateUser(bookingUser, bookingUser.getUserRoles());
+				this.userService.updateUser(bookingUser);
 			}
 
 		}

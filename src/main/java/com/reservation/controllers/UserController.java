@@ -2,9 +2,7 @@ package com.reservation.controllers;
 
 import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.validation.Valid;
 
@@ -21,13 +19,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.reservation.exception.ResourceNotFoundException;
-import com.reservation.models.security.BookingUser;
-import com.reservation.models.security.Role;
+import com.reservation.models.security.AuthProvider;
+import com.reservation.models.security.User;
 import com.reservation.models.security.UserAvailability;
-import com.reservation.models.security.UserRole;
 import com.reservation.securityconfig.PasswordEncrypt;
-import com.reservation.services.BookingUserService;
+import com.reservation.services.UserService;
 import com.reservation.services.EmailService;
+import com.reservation.models.security.responseentity.CurrentUserResponse;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -40,45 +38,29 @@ import io.swagger.annotations.ApiResponses;
 @Api(value = "User Creation and logout APIs")
 public class UserController {
 
-	private final BookingUserService userService;
+	private final UserService userService;
 
 	private final EmailService emailService;
 
 	private final PasswordEncrypt passwordEncrypt;
-	
-	
 
-	public UserController(
-			BookingUserService userService, 
-			EmailService emailService, 
-			PasswordEncrypt passwordEncrypt ) {
-		
+	public UserController(UserService userService, EmailService emailService, PasswordEncrypt passwordEncrypt) {
+
 		this.userService = userService;
 		this.emailService = emailService;
 		this.passwordEncrypt = passwordEncrypt;
-		
 
 	}
 
 	@PostMapping
 	@ApiOperation(value = "Controller for user registration")
 	public ResponseEntity<?> userRegistration(
-			@ApiParam(value = "User object to be stored in the database", required = true) @Valid @RequestBody BookingUser user)
+			@ApiParam(value = "User object to be stored in the database", required = true) @Valid @RequestBody User user)
 			throws Exception {
 		try {
-			HashSet<UserRole> roles = new HashSet<UserRole>();
-			Role role = new Role();
-			role.setRole("ROLE_USER");
-			UserRole userRole = new UserRole(user, role);
-			roles.add(userRole);
-			Set<UserRole> userRoles = user.getUserRoles();
-			if (userRoles.isEmpty()) {
-				userService.createUser(user, roles);
-			} else {
-				this.userService.createUser(user, user.getUserRoles());
-			}
-
-			String html = "User with " + user.getUsername() + " has been successfully created.";
+			user.setProvider(AuthProvider.local);
+			this.userService.createUser(user);
+			String html = "User with " + user.getName() + " has been successfully created.";
 			emailService.sendHtml("naabin@outlook.com", user.getEmail(), "User Registration", html, null);
 			return ResponseEntity.ok().body(user);
 		} catch (Exception e) {
@@ -89,12 +71,12 @@ public class UserController {
 
 	@PostMapping("/sendtoken")
 	public ResponseEntity<?> resetPassword(@RequestParam(name = "email", required = true) String email) {
-		BookingUser user = this.userService.loadUserByEmail(email);
+		User user = this.userService.loadUserByEmail(email);
 		if (user != null) {
 			SecureRandom random = new SecureRandom();
 			int randomInt = random.nextInt(1000000);
 			user.setResetPin(randomInt);
-			this.userService.updateUser(user, user.getUserRoles());
+			this.userService.updateUser(user);
 			String html = "Password reset token is " + randomInt;
 			this.emailService.sendHtml("naabin@outlook.com", email, "Password reset token", html, null);
 			return ResponseEntity.ok().body(new HashMap<String, Boolean>().put("email", true));
@@ -107,11 +89,11 @@ public class UserController {
 	public ResponseEntity<?> validateToken(@RequestParam("resetToken") String resetToken)
 			throws ResourceNotFoundException {
 		Integer token = Integer.parseInt(resetToken);
-		BookingUser user = this.userService.findUserByResetPin(token)
+		User user = this.userService.findUserByResetPin(token)
 				.orElseThrow(() -> new ResourceNotFoundException("Invalid token"));
 
 		user.setResetPin(null);
-		this.userService.updateUser(user, user.getUserRoles());
+		this.userService.updateUser(user);
 		return ResponseEntity.ok().body(new HashMap<String, Boolean>().put("userExists", true));
 
 	}
@@ -119,10 +101,10 @@ public class UserController {
 	@PostMapping("/resetpassword")
 	public ResponseEntity<?> resetPassword(@RequestParam("email") String email,
 			@RequestParam("password") String password) {
-		BookingUser bookingUser = this.userService.loadUserByEmail(email);
+		User bookingUser = this.userService.loadUserByEmail(email);
 		if (bookingUser != null) {
 			bookingUser.setPassword(this.passwordEncrypt.passwordEncoder().encode(password));
-			this.userService.updateUser(bookingUser, bookingUser.getUserRoles());
+			this.userService.updateUser(bookingUser);
 			return ResponseEntity.ok().body(new HashMap<String, Boolean>().put("passwordChanged", true));
 		} else {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -135,8 +117,8 @@ public class UserController {
 			@ApiResponse(code = 403, message = "Accessing the resource you were trying to access is forbidden"),
 			@ApiResponse(code = 404, message = "The resource you were trying to find is either unavailabe or not found.") })
 	@ApiOperation(value = "View all the list of registered users", response = List.class)
-	public ResponseEntity<List<BookingUser>> getAllRegisteredUsers() {
-		List<BookingUser> allUsers = userService.getAllUsers();
+	public ResponseEntity<List<User>> getAllRegisteredUsers() {
+		List<User> allUsers = userService.getAllUsers();
 
 		return ResponseEntity.ok().body(allUsers);
 	}
@@ -174,12 +156,14 @@ public class UserController {
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<BookingUser> getRegisteredById(
+	public ResponseEntity<CurrentUserResponse> getRegisteredById(
 			@ApiParam(value = "User id to retirieve the user information", required = true) @PathVariable("id") Long id)
 			throws ResourceNotFoundException {
-		BookingUser user = userService.findUserById(id).orElseThrow(
+		User user = userService.findUserById(id).orElseThrow(
 				() -> new ResourceNotFoundException("Resource not found which is associated with an id: " + id));
-		return ResponseEntity.ok().body(user);
+
+		CurrentUserResponse userResponse = new CurrentUserResponse(user.getId(), user.getName(), user.getEmail(), user.getImageUrl(), user.getRestaurant());
+		return ResponseEntity.ok().body(userResponse);
 	}
 
 	@DeleteMapping("/{id}")
@@ -187,7 +171,7 @@ public class UserController {
 		userService.deleteUserById(id);
 		return ResponseEntity.ok().body("Resource deleted successfully.");
 	}
-	
+
 	@PostMapping("/logout")
 	@ApiOperation(value = "User logout API. However it does not guarantee that the token will expire and become invalid.")
 	public ResponseEntity<?> logout() {

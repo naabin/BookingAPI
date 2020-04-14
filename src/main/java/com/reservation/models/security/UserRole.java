@@ -23,7 +23,7 @@ public class UserRole {
 	@JsonIgnore
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn
-	private BookingUser user;
+	private User user;
 
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn
@@ -34,7 +34,7 @@ public class UserRole {
 
 	}
 
-	public UserRole(BookingUser user, Role role) {
+	public UserRole(User user, Role role) {
 
 		this.user = user;
 		this.role = role;
@@ -50,11 +50,11 @@ public class UserRole {
 		this.id = id;
 	}
 
-	public BookingUser getUser() {
+	public User getUser() {
 		return user;
 	}
 
-	public void setUser(BookingUser user) {
+	public void setUser(User user) {
 		this.user = user;
 	}
 

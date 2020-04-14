@@ -1,4 +1,4 @@
-package com.reservation.models.security;
+package com.reservation.models.security.responseentity;
 
 import java.io.Serializable;
 

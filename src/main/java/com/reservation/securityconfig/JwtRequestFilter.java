@@ -12,13 +12,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.reservation.models.security.BookingUser;
-import com.reservation.services.BookingUserService;
+import com.reservation.services.UserService;
 
 import io.jsonwebtoken.ExpiredJwtException;
 
@@ -29,12 +30,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JwtRequestFilter.class);
 	
 	
-	private final BookingUserService userService;
+	private final UserService userService;
 	
 	private final JwtTokenUtil jwtTokenUtil;
 	
 	@Autowired
-	public JwtRequestFilter(BookingUserService userService, JwtTokenUtil jwtTokenUtil) {
+	public JwtRequestFilter(UserService userService, JwtTokenUtil jwtTokenUtil) {
 		this.userService = userService;
 		this.jwtTokenUtil = jwtTokenUtil;
 	}
@@ -71,7 +72,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 		
 		//Once we get we validate the token
 		if(username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-			final BookingUser userDetails = this.userService.loadUserByEmail(username);
+			 UserDetails userDetails = this.userService.loadUserByUsername(username);
 			
 			//If token is valid configure Spring Security to manually set
 			if(this.jwtTokenUtil.validateToken(jwtToken, userDetails)) {
@@ -87,8 +88,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 				 * that the current user is authenticated. So it passes the Spring 
 				 * security configurations successfully.
 				 */
-				
-				SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+				//Creating Security Context instance to avoid race conditions across multiple threads. Nabin
+				SecurityContext context = SecurityContextHolder.createEmptyContext();
+				context.setAuthentication(usernamePasswordAuthenticationToken);
+				SecurityContextHolder.setContext(context);
 			}
 		}
 		filterChain.doFilter(request, response);		

@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import com.reservation.models.security.BookingUser;
+import com.reservation.models.security.oauthuser.UserPrincipal;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -54,7 +56,8 @@ public class JwtTokenUtil implements Serializable {
 	}
 	
 	//Generate token for user
-	public String generateToken(BookingUser userDetails) {
+	public String generateToken(Authentication authentication) {
+		UserPrincipal userDetails = (UserPrincipal)authentication.getPrincipal();
 		Map<String, Object> claims = new HashMap<String, Object>();
 		return doGenerateToken(claims, userDetails.getEmail());
 	}
@@ -75,9 +78,9 @@ public class JwtTokenUtil implements Serializable {
 	}
 	
 	
-	public Boolean validateToken(String token, BookingUser userDetails) {
+	public Boolean validateToken(String token, UserDetails userDetails) {
 		final String username = getUsernameFromToken(token);
-		return (username.equals(userDetails.getEmail()) && !isTokenExpired(token));
+		return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
 	}
 	
 	

@@ -39,8 +39,8 @@ public class ImageController {
 			@RequestParam(name = "restaurantId", required = true)Long id) throws ResourceNotFoundException, IOException{
 		Restaurant restaurant = this.restaurantService.findRestaurantById(id).orElseThrow(() -> new ResourceNotFoundException("Resource could not be found"));
 		Image image = this.imageService.uploadFileToS3Bucket(file);
-		image.setRestaurant(restaurant);
 		restaurant.setImage(image);
+		image.setRestaurant(restaurant);
 		this.restaurantService.updateRestaurant(restaurant);
 		Image updatedImage = this.imageService.update(image);
 		
@@ -57,7 +57,11 @@ public class ImageController {
 	@DeleteMapping("/{id}")
 	public ResponseEntity<?> deleteImage(
 			@PathVariable("id") Long id,
-			@RequestParam(name = "imageURL", required = true)String imageUrl){
+			@RequestParam(name = "imageURL", required = true)String imageUrl,
+			@RequestParam(name = "restaurantId", required = true)Long restuarantId) throws ResourceNotFoundException{
+		Restaurant restaurant = this.restaurantService.findRestaurantById(restuarantId).orElseThrow(() ->  new ResourceNotFoundException("Could not locate the resource"));
+		restaurant.setImage(null);
+		this.restaurantService.updateRestaurant(restaurant);
 		this.imageService.deleteFileFromS3Bucket(imageUrl, id);
 		return ResponseEntity.ok().build();
 	}
@@ -70,9 +74,10 @@ public class ImageController {
 			@RequestParam(name = "currentImageUrl", required = true)String currentImageUrl
 			) throws IOException, ResourceNotFoundException{
 		Restaurant restaurant = this.restaurantService.findRestaurantById(restaurantId).orElseThrow(() -> new ResourceNotFoundException("Could not find the resources"));
+		restaurant.setImage(null);
 		Image image = this.imageService.changePicture(file, currentImageUrl, currentImageUrlId);
-		image.setRestaurant(restaurant);
 		restaurant.setImage(image);
+		image.setRestaurant(restaurant);
 		this.restaurantService.updateRestaurant(restaurant);
 		Image updatedImage = this.imageService.update(image);
 		return ResponseEntity.ok().body(updatedImage);

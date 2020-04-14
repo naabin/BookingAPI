@@ -79,6 +79,7 @@ public class ImageServiceImpl implements ImageService {
 
 	@Override
 	public void delete(long id) {
+		
 		this.imageRepository.deleteById(id);
 	}
 

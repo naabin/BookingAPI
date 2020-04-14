@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.reservation.exception.ResourceNotFoundException;
 import com.reservation.models.Reservation;
 import com.reservation.models.Restaurant;
-import com.reservation.models.security.BookingUser;
-import com.reservation.services.BookingUserService;
+import com.reservation.models.security.User;
+import com.reservation.services.UserService;
 import com.reservation.services.EmailService;
 import com.reservation.services.ReservationService;
 import com.reservation.services.RestaurantService;
@@ -41,13 +41,13 @@ public class ReservationController {
 	
 	private final ReservationService reservationService;
 	private final RestaurantService restaurantService;
-	private final BookingUserService userService;
+	private final UserService userService;
 	private final EmailService emailService;
 	
 	public ReservationController(
 			ReservationService reservationService, 
 			RestaurantService restaurantService,
-			BookingUserService userService,
+			UserService userService,
 			EmailService emailService) {
 		this.reservationService = reservationService;
 		this.restaurantService = restaurantService;
@@ -70,7 +70,7 @@ public class ReservationController {
 			@RequestParam(name = "sortBy", required = false, defaultValue = "date")String date
 			) throws ResourceNotFoundException{
 		
-		BookingUser user = this.userService.findUserById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+		User user = this.userService.findUserById(userId).orElseThrow(() -> new UsernameNotFoundException("User not found"));
 		
 		Long usersRestaurantId = user.getRestaurant().getId();
 		
@@ -112,7 +112,7 @@ public class ReservationController {
 			@RequestParam("restaurantId")Long restaurantId) throws ResourceNotFoundException{
 		
 		Restaurant restaurant = this.restaurantService.findRestaurantById(restaurantId).orElseThrow(() -> new ResourceNotFoundException("No such restaurant found."));
-		reservation.setCreatedBy(restaurant.getUser().getFirstName());
+		reservation.setCreatedBy(restaurant.getUser().getName());
 		reservation.setCreatedDate(OffsetDateTime.now());
 		reservation.setRestaurant(restaurant);
 		reservation.setConfimed(true);
